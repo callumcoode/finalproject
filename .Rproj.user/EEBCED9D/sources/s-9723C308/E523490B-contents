@@ -1,0 +1,174 @@
+#you may want Session > Set Working Directory > To Source File Location as the very first thing you do
+
+#libraries
+library(here)
+library(tidyverse)
+
+#load the microsaccade data
+df <- read.csv(here("data", "microsaccades_trial.csv"))
+View(df)
+#use mutate to calculate microsaccades per second by dividing N by trial_length
+df <- df %>% 
+  mutate(ms_per_second = N/trial_length)
+
+
+#you can get pipes with shift + ctrl + m
+
+#we have a column X which contains the full path of the source data
+#this filename contains  the ppt number, the condition and the trial number.
+#We want to make all this info explicitly coded in column values
+
+#make a new column discarding the path info, keeping the filename
+#hint: use the separate function
+df <- df %>% 
+  separate(X, c(NA,NA,NA, "file"), sep = "/")
+
+#use str_sub to get the participant number and condition
+
+df <- df %>% 
+  mutate(ppt = str_sub(file, 1,3)) %>% 
+  mutate(cond = str_sub(file, 4,7))
+
+#use parse_number to discard non-numeric info after first 3 chars of filename, to get trial number
+#hint: use str_sub to apply only parse_number to characters 4 onwards
+
+df <- df %>% 
+  mutate(trial = parse_number(str_sub(file, 4)))
+
+#inspect data using head
+head(df, 10)
+
+
+#find unique values for ppt
+
+length(unique(df$ppt))
+
+# use select to just look at some columns
+# tidy up using select, keeping only ppt, cond, trial and ms_per_second in df
+
+df <- df %>% 
+  select(-file, -N)
+
+df <- df %>% 
+  select(ppt, cond, trial, ms_per_second)
+#both of these do the same thing
+
+# use filter to just look at some rows
+
+df %>% filter(cond == "post" & trial == 1)
+
+# how many rows are from the condition "post" and "trial" 1?
+
+  
+# how many rows where condition is post, trials is 1 and ppt is 13?
+
+
+df %>% filter(cond == "post" & 
+                trial == 1 &
+                ppt == "013")
+
+#make a plot of trial number against ms_per_second
+
+p <- ggplot(df, aes(x = trial, y = ms_per_second))
+
+p + geom_point(alpha = 0.3) + geom_smooth(method = lm)
+
+#summarise
+# use group_by to find the mean ms_per_second per participant
+
+df %>% 
+  group_by(ppt) %>% 
+  summarise(rate = mean(ms_per_second))
+
+# try the same thing without the group_by
+
+df %>% 
+  summarise(rate = mean(ms_per_second))
+
+#use group by to count the number of trials per participant
+
+df %>% 
+  group_by(ppt) %>% 
+  summarise(n = n())
+
+#find mean ms_per_second per trial
+
+df %>% 
+  group_by(trial) %>% 
+  summarise(mean_trial = mean(ms_per_second))
+
+#make a plot of this
+#- try putting the whole piped phrase into the data = bit of the ggplot call 
+
+p <- ggplot(data = (df %>% group_by(trial) %>% summarise(mean_trial = mean(ms_per_second))),
+            aes(x = trial, y = mean_trial))
+
+p+geom_point()
+
+#plot, using group_by with trial and condition, creating new df first
+
+d1 <- df %>% 
+  group_by(trial, cond) %>% 
+  summarise(mean = mean(ms_per_second))
+
+p1 <- ggplot(data = d1, aes(x = trial, y = mean, colour = cond, shape = cond))
+p1 + geom_point() + geom_smooth(method = "lm")
+
+#merging data from multiple sources is a vital part of data wrangling
+
+#import asrs.csv which contains participant ASRS scores
+
+df2 <- read.csv(here("data", "asrs.csv"))
+
+#rename: change column/variable names to something short
+
+df2 <- df2 %>% 
+  rename(ppt = Participant.Number, asrs = Total.ASRS.Score)
+
+df2 <- df2 %>% 
+  select(ppt, asrs)
+
+#note that this new df doesn't contain trial information
+# compared to the first df it is already "grouped by" ppt 
+
+#create a df containing the mean ms_per_second data, grouped by ppt and cond
+
+df3 <- df %>% 
+  group_by(ppt, cond) %>% 
+  summarise(mean_ms = mean(ms_per_second))
+          
+#merge! Called a join in tidyverse https://dplyr.tidyverse.org/reference/join.html  
+       
+#to use ppt as a key we need them to be the same type
+
+#find the typer of the ppt variable in both dfs
+
+df2$ppt
+df3$ppt
+
+#probably easier to convert char to num, using as.numeric
+#you can do this by direct assignment
+
+df3$ppt <- as.numeric(df3$ppt)
+class(df3$ppt)
+
+
+#or the tidyverse way, using mutate
+
+#a left join will keep the keys from the first df and add in key-matching rows from the second
+
+left_join(df2, df3, by = "ppt")
+
+#a right join does the opposite
+
+
+#make a new df using an inner join, which only accepts the overlap of two dfs
+
+join <- inner_join(df2, df3, "ppt")
+join
+
+#plot result, showing asrs score against microsaccade rate
+
+plot <- ggplot(join, aes(x = asrs, y = mean_ms, colour = cond, shape = cond, fill = cond))
+
+plot + geom_point() + geom_smooth(method = "lm")
