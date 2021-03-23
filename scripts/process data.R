@@ -11,4 +11,4 @@ df <- df %>%
 
 write.csv(df, file = here("data", "fludata_short.csv"))
 
-head(df)
+head (df)

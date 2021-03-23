@@ -1,0 +1,37 @@
+---
+title: "Initial data presentation"
+author: "callumcoode"
+date: "23/03/2021"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## First presentation of my data set
+
+I wanted to find something related to Covid-19 but looking at something positive. 
+I found data from [WHO](https://apps.who.int/flumart/Default?ReportNo=12) on cases of influenza as I have heard from many places that people haven't got flu or colds as they usually would due to social distancing.
+
+I have processed the data to just look at the total cases of all types of flu on a weekly basis. From initially looking at the data, it does look like the cases in 2020/2021 are a lot lower.
+
+```{r library set up, include=FALSE}
+library(here)
+library(tidyverse)
+```
+
+```{r processing data}
+df <- read.csv(here("data", "rawfludata.csv"))
+
+df <- df %>% 
+  rename(year = Year, week = Week, start = Start.date, end = End.date, cases = Total.number.of.influenza.positive.viruses)
+
+df <- df %>% 
+  select(year, week, start, end, cases)
+
+head(df)
+```
