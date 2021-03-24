@@ -1,7 +1,6 @@
 ---
-title: "Initial data presentation"
-author: "callumcoode"
-date: "23/03/2021"
+title: "First presentation of my data set"
+author: "Callum Coode"
 output:
   pdf_document: default
   html_document:
@@ -12,12 +11,12 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## First presentation of my data set
+# Effect of social distancing on cases of flu
 
 I wanted to find something related to Covid-19 but looking at something positive. 
-I found data from [WHO](https://apps.who.int/flumart/Default?ReportNo=12) on cases of influenza as I have heard from many places that people haven't got flu or colds as they usually would due to social distancing.
+I found data from *[WHO on cases of influenza](https://apps.who.int/flumart/Default?ReportNo=12)* as a lot of people are saying that they haven't got flu or colds this year due to social distancing.
+I have processed the data to just look at the total cases of all types of flu on a weekly basis.
 
-I have processed the data to just look at the total cases of all types of flu on a weekly basis. From initially looking at the data, it does look like the cases in 2020/2021 are a lot lower.
 
 ```{r library set up, include=FALSE}
 library(here)
@@ -28,10 +27,28 @@ library(tidyverse)
 df <- read.csv(here("data", "rawfludata.csv"))
 
 df <- df %>% 
-  rename(year = Year, week = Week, start = Start.date, end = End.date, cases = Total.number.of.influenza.positive.viruses)
+  rename(year = Year, week = Week, start = Start.date, end = End.date, 
+         cases = Total.number.of.influenza.positive.viruses)
 
 df <- df %>% 
   select(year, week, start, end, cases)
 
-head(df)
+head(df, 10)
 ```
+
+
+From initially looking at the data, it does look like the cases in 2020/2021 are a lot lower. For example, the mean number of cases in 2020 is `r round(mean(df[df$year == 2020, "cases"]), digits = 2)`, whereas in 2019 the mean is `r round(mean(df[df$year == 2019, "cases"]), digits = 2)`.
+
+
+```{r line graph}
+df$year <- as.character(df$year)
+
+p1 <- ggplot(df, aes(x = week, y = cases, group = year, colour = year))
+p1 + geom_line() + geom_point()
+```
+
+Since cases are usually a lot higher in the winter and lockdown started on 23rd March (week 13), I may display this data from week 13 to week 13 to better show the impact of social distancing on cases. I may also include bar graphs showing highest or total cases for each of these periods.
+
+**Please note this does not include data from 2021.**
+There is currently no data for the most recent 2 weeks of 2021, but this will be added as soon as this becomes available, hopefully in the next few weeks.
+
