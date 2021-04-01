@@ -1,0 +1,86 @@
+---
+title: "title"
+author: "callumcoode"
+output: html_document
+runtime: shiny
+---
+
+```{r librarysetup, include=FALSE}
+library(tidyverse)
+library(shiny)
+library(here)
+```
+
+
+```{r processing data}
+df <- read.csv(here("data", "rawfludata.csv"))
+
+df <- df %>% 
+  rename(year = Year, week = Week, start = Start.date, end = End.date, 
+         cases = Total.number.of.influenza.positive.viruses)
+
+df <- df %>% 
+  select(year, week, start, end, cases)
+
+df$year <- as.character(df$year)
+```
+
+```{r colour setup, include = FALSE}
+colscale <- c(
+  "2015" = "red",
+  "2016" = "orange",
+  "2017" = "yellow",
+  "2018" = "forestgreen",
+  "2019" = "dodgerblue",
+  "2020" = "magenta1"
+)
+```
+
+```{r shiny graph}
+
+ui <- fluidPage(
+
+    # Application title
+    titlePanel("Trends for each year"),
+
+    # Sidebar with a slider input for number of bins 
+    sidebarLayout(
+        sidebarPanel(
+            # Title of checkbox
+            p("Select each year to include"),
+            
+            # Creating a checkbox for each year
+            checkboxGroupInput(
+                "years",
+                "Year",
+                choices = list("2015" = "2015",
+                               "2016" = "2016",
+                               "2017" = "2017",
+                               "2018" = "2018",
+                               "2019" = "2019",
+                               "2020" = "2020"),
+                selected = "2020")
+            ),
+
+        mainPanel(
+           plotOutput("yearplot")
+        )
+    )
+)
+
+server <- function(input, output) {
+
+    output$yearplot <- renderPlot({
+       ggplot(data = (df %>% 
+                          filter(year %in% input$years)), # only displays years checked in the checkbox
+              aes(x = week, y = cases, group = year, colour = year)) +
+            geom_line() + geom_point() + 
+        scale_colour_manual(values = colscale) 
+      # uses colour scale assigned to each year (not shown) so colours don't change when other years are selected
+    })
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+
+```
