@@ -1,5 +1,5 @@
 ---
-title: "title"
+title: "Cases of flu over the Covid-19 lockdown"
 author: "callumcoode"
 output: html_document
 runtime: shiny
@@ -10,6 +10,13 @@ library(tidyverse)
 library(shiny)
 library(here)
 ```
+
+# Research question
+Over the course of the Covid-19 lockdown, there have been many claims that the cases of flu have dropped due to the lockdown and social distancing measures. However, much of this evidence has been anecdotal and may be fueled by an increased focus on health or a need to find positivity amidst a pandemic. This project will attempt to look at whether the data support these claims by comparing the number of cases over 2020 and 2021 to previous years.
+
+# Data origin and processing
+I found data from *[WHO on cases of influenza](https://apps.who.int/flumart/Default?ReportNo=12)* 
+I have processed the data to just look at the total cases of all types of flu on a weekly basis.
 
 
 ```{r processing data}
@@ -32,7 +39,13 @@ colscale <- c(
   "2017" = "yellow",
   "2018" = "forestgreen",
   "2019" = "dodgerblue",
-  "2020" = "magenta1"
+  "2020" = "magenta1",
+  "2015/2016" = "red",
+  "2016/2017" = "orange",
+  "2017/2018" = "yellow",
+  "2018/2019" = "forestgreen",
+  "2019/2020" = "dodgerblue",
+  "2020/2021" = "magenta1"
 )
 ```
 
@@ -43,7 +56,6 @@ ui <- fluidPage(
     # Application title
     titlePanel("Trends for each year"),
 
-    # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
             # Title of checkbox
@@ -72,11 +84,80 @@ server <- function(input, output) {
 
     output$yearplot <- renderPlot({
        ggplot(data = (df %>% 
-                          filter(year %in% input$years)), # only displays years checked in the checkbox
+                          filter(year %in% input$years)), # Only displays years checked in the checkbox
               aes(x = week, y = cases, group = year, colour = year)) +
             geom_line() + geom_point() + 
         scale_colour_manual(values = colscale) 
-      # uses colour scale assigned to each year (not shown) so colours don't change when other years are selected
+      # Uses colour scale assigned to each year (not shown) so colours don't change when other years are selected
+    })
+}
+
+# Runs the application 
+shinyApp(ui = ui, server = server)
+
+```
+
+```{r winter data processing}
+dfwin <- df %>% 
+  mutate(period = case_when(
+    (year == 2015 & week >= 38)|(year == 2016 & week <= 20) ~ "2015/2016",
+    (year == 2016 & week >= 38)|(year == 2017 & week <= 20) ~ "2016/2017",
+    (year == 2017 & week >= 38)|(year == 2018 & week <= 20) ~ "2017/2018",
+    (year == 2018 & week >= 38)|(year == 2019 & week <= 20) ~ "2018/2019",
+    (year == 2019 & week >= 38)|(year == 2020 & week <= 20) ~ "2019/2020",
+    (year == 2020 & week >= 38)|(year == 2021 & week <= 20) ~ "2020/2021",
+    TRUE ~ "NA"
+  ))
+
+dfwin <- dfwin[!(dfwin$period == "NA"), ]
+
+dfwin$week <- as.character(dfwin$week)
+dfwin$week <- factor(dfwin$week, levels = unique(dfwin$week))
+
+# The script for the graph is not shown as it is a repeat of the last graph with very few changes
+```
+
+```{r winter app, echo=FALSE}
+#remove this script, basically a repeat of before
+
+ui <- fluidPage(
+    
+    # Application title
+    titlePanel("Trends for winter period"),
+    
+    sidebarLayout(
+        sidebarPanel(
+            # Title of checkbox
+            p("Select each period to include"),
+            
+            # Creating a checkbox for each year
+            checkboxGroupInput(
+                "per",
+                "Period",
+                choices = list("2015/2016" = "2015/2016",
+                               "2016/2017" = "2016/2017",
+                               "2017/2018" = "2017/2018",
+                               "2018/2019" = "2018/2019",
+                               "2019/2020" = "2019/2020",
+                               "2020/2021" = "2020/2021"),
+                selected = c("2015/2016", "2017/2018","2019/2020", "2020/2021"))
+        ),
+        
+        # Show a plot of the generated distribution
+        mainPanel(
+            plotOutput("winterPlot")
+        )
+    )
+)
+
+server <- function(input, output) {
+    
+    output$winterPlot <- renderPlot({
+        ggplot(data = (dfwin %>% 
+                           filter(period %in% input$per)), 
+               aes(x = week, y = cases, group = period, colour = period)) +
+            geom_line() + geom_point() +
+        scale_colour_manual(values = colscale)
     })
 }
 
