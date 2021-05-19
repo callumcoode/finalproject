@@ -9,14 +9,17 @@ runtime: shiny
 library(tidyverse)
 library(shiny)
 library(here)
+knitr::opts_chunk$set(fig.show="hold")
 ```
 
 # Research question
 Over the course of the Covid-19 lockdown, there have been many claims that the cases of flu have dropped due to the lockdown and social distancing measures. However, much of this evidence has been anecdotal and may be fueled by an increased focus on health or a need to find positivity amidst a pandemic. This project will attempt to look at whether the data support these claims by comparing the number of cases over 2020 and 2021 to previous years.
 
 # Data origin and processing
-I found data from *[WHO on cases of influenza](https://apps.who.int/flumart/Default?ReportNo=12)* 
-I have processed the data to just look at the total cases of all types of flu on a weekly basis.
+Data was taken from the [WHO FluNet database](https://apps.who.int/flumart/Default?ReportNo=12) which contained weekly figures on different subtypes of influenza (see more about the project [here](https://www.who.int/influenza/gisrs_laboratory/flunet/en/)).
+
+
+Only data from the United Kingdom since 2015 was downloaded, and this was processed to just contain the total cases of all types of flu on a weekly basis.
 
 
 ```{r processing data}
@@ -24,36 +27,38 @@ df <- read.csv(here("data", "rawfludata.csv"))
 
 df <- df %>% 
   rename(year = Year, week = Week, start = Start.date, end = End.date, 
-         cases = Total.number.of.influenza.positive.viruses)
-
-df <- df %>% 
+         cases = Total.number.of.influenza.positive.viruses) %>% 
   select(year, week, start, end, cases)
 
 df$year <- as.character(df$year)
+
+head(df)
 ```
+
+# Visualisation 1
 
 ```{r colour setup, include = FALSE}
 colscale <- c(
   "2015" = "red",
-  "2016" = "orange",
-  "2017" = "yellow",
+  "2016" = "darkorange",
+  "2017" = "gold",
   "2018" = "forestgreen",
   "2019" = "dodgerblue",
   "2020" = "magenta1",
   "2015/2016" = "red",
-  "2016/2017" = "orange",
-  "2017/2018" = "yellow",
+  "2016/2017" = "darkorange",
+  "2017/2018" = "gold",
   "2018/2019" = "forestgreen",
   "2019/2020" = "dodgerblue",
   "2020/2021" = "magenta1"
 )
 ```
 
-```{r shiny graph}
+```{r shiny graph, dpi=72}
 
 ui <- fluidPage(
 
-    # Application title
+    # Title of the graph
     titlePanel("Trends for each year"),
 
     sidebarLayout(
@@ -61,7 +66,7 @@ ui <- fluidPage(
             # Title of checkbox
             p("Select each year to include"),
             
-            # Creating a checkbox for each year
+            # Creats a checkbox for each year
             checkboxGroupInput(
                 "years",
                 "Year",
@@ -71,11 +76,12 @@ ui <- fluidPage(
                                "2018" = "2018",
                                "2019" = "2019",
                                "2020" = "2020"),
-                selected = "2020")
+                selected = c("2017", "2019", "2020"))
+                # Displays these years by default
             ),
 
         mainPanel(
-           plotOutput("yearplot")
+           fillPage(plotOutput("yearplot")) # fillPage helped it fit on the markdown output
         )
     )
 )
@@ -86,10 +92,12 @@ server <- function(input, output) {
        ggplot(data = (df %>% 
                           filter(year %in% input$years)), # Only displays years checked in the checkbox
               aes(x = week, y = cases, group = year, colour = year)) +
-            geom_line() + geom_point() + 
-        scale_colour_manual(values = colscale) 
+            geom_line(size = 1) + geom_point() + labs(color='Year') +
+        scale_colour_manual(values = colscale) +
+        scale_x_continuous("Week", breaks = seq(0,53,5)) +
+        scale_y_continuous("Number of cases", breaks = seq(0,4000,500), limits = c(0,4250))
       # Uses colour scale assigned to each year (not shown) so colours don't change when other years are selected
-    })
+    }, height = 300, width = 600)
 }
 
 # Runs the application 
@@ -97,7 +105,15 @@ shinyApp(ui = ui, server = server)
 
 ```
 
+This graph shows a general trend of each year starting with high flu levels, reducing to almost 0 during the summer and rising back up towards the end of the year. It appears from this graph that 2020 begins in a similar way to previous years but does not rise after the summer period. 
+
+# Visualisation 2
+
+Since levels are so low during the summer, the data has been processed to just look at the winter period. Also, to make the trends over winter clearer, the data has been assigned to a 'period' which runs over the new year.
+
 ```{r winter data processing}
+# Creates a new variable 'period' containing names of each winter period spanning from week 38 to week 20 the following year. Data outside this timeframe is given value NA, then deleted.
+
 dfwin <- df %>% 
   mutate(period = case_when(
     (year == 2015 & week >= 38)|(year == 2016 & week <= 20) ~ "2015/2016",
@@ -113,6 +129,9 @@ dfwin <- dfwin[!(dfwin$period == "NA"), ]
 
 dfwin$week <- as.character(dfwin$week)
 dfwin$week <- factor(dfwin$week, levels = unique(dfwin$week))
+# This code puts the 'weeks' variable in a different order than numerical, so that the data can be displayed as 38-53, then 1-20
+
+head(dfwin)
 
 # The script for the graph is not shown as it is a repeat of the last graph with very few changes
 ```
@@ -122,15 +141,15 @@ dfwin$week <- factor(dfwin$week, levels = unique(dfwin$week))
 
 ui <- fluidPage(
     
-    # Application title
+    # # Title of the graph
     titlePanel("Trends for winter period"),
     
     sidebarLayout(
         sidebarPanel(
-            # Title of checkbox
+            # Title of the checkbox
             p("Select each period to include"),
             
-            # Creating a checkbox for each year
+            # Creating a box for each period
             checkboxGroupInput(
                 "per",
                 "Period",
@@ -141,11 +160,12 @@ ui <- fluidPage(
                                "2019/2020" = "2019/2020",
                                "2020/2021" = "2020/2021"),
                 selected = c("2015/2016", "2017/2018","2019/2020", "2020/2021"))
+            # The same years as before are selected by default
         ),
         
         # Show a plot of the generated distribution
         mainPanel(
-            plotOutput("winterPlot")
+            fillPage(plotOutput("winterPlot"))
         )
     )
 )
@@ -156,12 +176,28 @@ server <- function(input, output) {
         ggplot(data = (dfwin %>% 
                            filter(period %in% input$per)), 
                aes(x = week, y = cases, group = period, colour = period)) +
-            geom_line() + geom_point() +
-        scale_colour_manual(values = colscale)
-    })
+            geom_line(size = 1) + labs(color='Period') +
+        scale_colour_manual(values = colscale) +
+        scale_x_discrete("Week", breaks = dfwin$week[seq(1,36,5)]) +
+        scale_y_continuous("Number of cases", breaks = seq(0,4000,500), limits = c(0,4250))
+    }, height = 300, width = 600)
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
 
 ```
+
+It is clear from this graph that the 2020/2021 winter period does not follow the same trend as previous years, with cases remaining very low.
+
+# Discussion
+
+The data presented here does support the idea that social distancing measures have caused cases of flu to be much lower than in previous years. For example, during the winter of 2020/2021, the cases of flu only reach as high as `r max(dfwin[dfwin$period == "2020/2021", "cases"])`, compared to `r max(dfwin[dfwin$period == "2019/2020", "cases"])` cases in 2019/2020 or `r max(dfwin[dfwin$period == "2015/2016", "cases"])` in 2015/2016.
+
+One important thing to note about this data is that each week runs from Monday to Sunday and only some years run for 53 weeks, meaning that weeks are not set to specific dates. For example, week 1 in 2020 starts on `r df$start[which((df$year == 2020) & (df$week == 1))]`, whereas week 1 in 2021 starts on `r df$start[which((df$year == 2021) & (df$week == 1))]`. This means that it is difficult to compare the timings in each year as the same date may fall into different weeks in different years, meaning any peaks in data may appear slightly sooner or later than they should.
+
+Also, it is possible that cases during lockdown appear lower simply because there were fewer participants. People were likely to be concerned with staying safe and following social distancing rules or may have assumed there illness was due to Covid-19, and therefore would be less likely to report whether they had influenza. Future research should consider this and look at the numbers of positive and negative results.
+
+Despite these limitations, I believe there is sufficient evidence to support the claim that cases of flu have been much lower over the Covid-19 pandemic. This may further support role of social distancing and lockdown in reducing cases of Covid-19, rather than the number of cases dropping naturally over time.
+
+The GitHub repo for this analysis can be found [here](https://github.com/callumcoode/finalproject)
