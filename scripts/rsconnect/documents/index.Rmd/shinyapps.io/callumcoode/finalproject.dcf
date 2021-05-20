@@ -1,0 +1,13 @@
+name: finalproject
+title: finalproject
+username:
+account: callumcoode
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4156441
+bundleId: 4619690
+url: https://callumcoode.shinyapps.io/finalproject/
+when: 1621506970.79497
+lastSyncTime: 1621506970.79497
+asMultiple: FALSE
+asStatic: FALSE

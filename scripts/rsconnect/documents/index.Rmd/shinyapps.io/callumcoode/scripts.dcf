@@ -1,0 +1,13 @@
+name: scripts
+title: scripts
+username:
+account: callumcoode
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4155912
+bundleId: 4617909
+url: https://callumcoode.shinyapps.io/scripts/
+when: 1621462049.592
+lastSyncTime: 1621462049.592
+asMultiple: FALSE
+asStatic: FALSE

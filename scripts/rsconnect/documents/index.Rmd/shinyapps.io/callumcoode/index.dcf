@@ -1,0 +1,14 @@
+name: index
+title: index
+username:
+account: callumcoode
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4156512
+bundleId: 4617980
+url: https://callumcoode.shinyapps.io/index/
+when: 1621463876.1244
+lastSyncTime: 1621463876.1254
+asMultiple: TRUE
+asStatic: FALSE
+ignoredFiles: datapres1.Rmd
